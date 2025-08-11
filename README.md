@@ -1,5 +1,5 @@
 # PROPUESTA DE PROYECTO FINAL
-## CarAI Diagnostics: Sistema Inteligente de Diagnóstico Automotriz con IA Conversacional
+## Sistema Inteligente de Diagnóstico Automotriz con IA Conversacional
 
 **Programa:** Ingeniería Electrónica  
 **Universidad del Norte**  
@@ -9,7 +9,7 @@
 
 ## 1. RESUMEN EJECUTIVO
 
-**CarAI Diagnostics** es un sistema integral de diagnóstico automotriz que combina hardware personalizado, análisis de datos OBD-II , e inteligencia artificial conversacional para proporcionar diagnóstico predictivo y asistencia técnica especializada a propietarios de vehículos y talleres.
+Es un sistema integral de diagnóstico automotriz que combina hardware personalizado, análisis de datos OBD-II , e inteligencia artificial conversacional para proporcionar diagnóstico predictivo y asistencia técnica especializada a propietarios de vehículos y talleres.
 
 El proyecto aborda el problema complejo de la interpretación de datos vehiculares, transformando información técnica cruda en insights accionables a través de una interfaz conversacional inteligente que "habla" con el usuario sobre el estado de su vehículo.
 
@@ -256,7 +256,7 @@ Este proyecto califica como **problema complejo** según criterios ABET por:
 
 ## 11. CONCLUSIONES
 
-**CarAI Diagnostics** representa una oportunidad única de aplicar tecnologías emergentes (IA conversacional, edge computing, ML predictivo) a un problema real del sector automotriz, con potencial de impacto social y comercial significativo.
+Este sistema representa una oportunidad única de aplicar tecnologías emergentes (IA conversacional, edge computing, ML predictivo) a un problema real del sector automotriz, con potencial de impacto social y comercial significativo.
 
 El proyecto cumple todos los criterios ABET para problemas complejos de ingeniería, integra múltiples disciplinas, y ofrece una experiencia de diseño completa desde la conceptualización hasta la validación experimental.
 
