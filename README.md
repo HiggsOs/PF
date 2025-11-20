@@ -263,3 +263,153 @@ El proyecto cumple todos los criterios ABET para problemas complejos de ingenier
 La combinación de viabilidad técnica, recursos disponibles, y potencial de mercado hace de esta propuesta una oportunidad ideal para un proyecto final de ingeniería electrónica con orientación comercial.
 
 ---
+
+## Stack Docker para MQTT (Mosquitto) + MySQL + Logger Python
+
+Este repositorio incluye un entorno listo para capturar lecturas de energía provenientes de un ESP32 con tres INA219 vía MQTT, registrarlas en MySQL y orquestar todo con Docker Compose.
+
+### Servicios incluidos
+
+- **Mosquitto**: broker MQTT expuesto en `1883` con configuración simple y persistencia local.
+- **MySQL 8**: base de datos `power_metrics` con usuario de aplicación configurable.
+- **Logger Python**: escucha un tópico MQTT, convierte el payload JSON en números y guarda cada evento en la tabla `measurements` con marca de tiempo.
+
+### Variables de entorno
+
+Completa un archivo `.env` tomando como base `.env.example` para ajustar credenciales y tópicos:
+
+```
+cp .env.example .env
+```
+
+- `MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`: credenciales y base de datos a crear.
+- `MQTT_TOPIC`: tópico que publicará el ESP32 (por defecto `esp32/ina219`).
+- `MQTT_CLIENT_ID`: identificador del cliente del logger.
+- `LOG_LEVEL`: nivel de log (`INFO` o `DEBUG`).
+
+### Puesta en marcha con Docker Compose
+
+1. Construir e iniciar los servicios:
+   ```bash
+   docker compose up --build
+   ```
+2. Verificar que Mosquitto escuche en `localhost:1883` y MySQL en `localhost:3306`.
+3. Revisa los logs del logger para confirmar conexión y suscripción:
+   ```bash
+   docker compose logs -f logger
+   ```
+
+### Formato esperado del mensaje MQTT
+
+Publica JSON con los 9 valores numéricos. Ejemplo:
+
+```json
+{
+  "current_1": 1.23,
+  "current_2": 1.18,
+  "current_3": 1.21,
+  "voltage_1": 229.8,
+  "voltage_2": 230.1,
+  "voltage_3": 229.6,
+  "power_1": 280.5,
+  "power_2": 275.2,
+  "power_3": 279.0
+}
+```
+
+### Esquema de base de datos
+
+La tabla `measurements` se crea automáticamente al iniciar el logger:
+
+| Columna      | Tipo     | Descripción                                    |
+|--------------|----------|------------------------------------------------|
+| id           | BIGINT   | Autoincremental, llave primaria                |
+| collected_at | TIMESTAMP| Fecha y hora en que se guardó el dato          |
+| current_1..3 | DOUBLE   | Corrientes de cada fase                        |
+| voltage_1..3 | DOUBLE   | Voltajes de cada fase                          |
+| power_1..3   | DOUBLE   | Potencias de cada fase                         |
+
+### Publicar un dato de prueba
+
+Con los contenedores arriba, envía un mensaje de ejemplo al tópico configurado:
+
+```bash
+mosquitto_pub -h localhost -p 1883 -t "esp32/ina219" \
+  -m '{"current_1":1.0,"current_2":1.1,"current_3":1.2,"voltage_1":230,"voltage_2":230,"voltage_3":230,"power_1":200,"power_2":210,"power_3":220}'
+```
+
+### Ejemplo de código para ESP32 con tres INA219 (I2C)
+
+Código Arduino que lee tres INA219 (direcciones 0x40, 0x41 y 0x44) y publica cada segundo en el tópico por defecto:
+
+```cpp
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include <Adafruit_INA219.h>
+
+const char* ssid = "TU_SSID";
+const char* password = "TU_PASSWORD";
+const char* mqtt_server = "192.168.1.100";   // Ajusta a la IP del host con Mosquitto
+const int mqtt_port = 1883;
+const char* mqtt_topic = "esp32/ina219";
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+Adafruit_INA219 ina1(0x40);
+Adafruit_INA219 ina2(0x41);
+Adafruit_INA219 ina3(0x44);
+
+void reconnect() {
+  while (!client.connected()) {
+    if (client.connect("esp32-ina219")) {
+      break;
+    }
+    delay(2000);
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  client.setServer(mqtt_server, mqtt_port);
+
+  ina1.begin();
+  ina2.begin();
+  ina3.begin();
+}
+
+void loop() {
+  if (!client.connected()) {
+    reconnect();
+  }
+  client.loop();
+
+  float c1 = ina1.getCurrent_mA() / 1000.0; // A
+  float v1 = ina1.getBusVoltage_V();
+  float p1 = c1 * v1;
+
+  float c2 = ina2.getCurrent_mA() / 1000.0;
+  float v2 = ina2.getBusVoltage_V();
+  float p2 = c2 * v2;
+
+  float c3 = ina3.getCurrent_mA() / 1000.0;
+  float v3 = ina3.getBusVoltage_V();
+  float p3 = c3 * v3;
+
+  char payload[256];
+  snprintf(payload, sizeof(payload),
+           "{\"current_1\":%.3f,\"current_2\":%.3f,\"current_3\":%.3f,\"voltage_1\":%.2f,\"voltage_2\":%.2f,\"voltage_3\":%.2f,\"power_1\":%.2f,\"power_2\":%.2f,\"power_3\":%.2f}",
+           c1, c2, c3, v1, v2, v3, p1, p2, p3);
+
+  client.publish(mqtt_topic, payload);
+  delay(1000);
+}
+```
+
+Conecta los INA219 en el bus I2C del ESP32 (SDA/SCL) y ajusta SSID, contraseña y `mqtt_server` según tu red. El logger en Docker escribirá automáticamente cada mensaje recibido en MySQL.
