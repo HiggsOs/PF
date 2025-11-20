@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from typing import List, Optional
 
 import mysql.connector
@@ -19,7 +20,7 @@ DEFAULT_LIMIT = 100
 
 class Measurement(BaseModel):
     id: int
-    collected_at: str
+    collected_at: datetime
     current_1: Optional[float]
     current_2: Optional[float]
     current_3: Optional[float]
