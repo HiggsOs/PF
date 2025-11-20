@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import time
 from datetime import datetime
 from typing import Any, Dict, Optional
@@ -63,11 +64,34 @@ def create_table_if_needed(conn: mysql.connector.connection.MySQLConnection) -> 
     cursor.close()
 
 
-def parse_payload(payload: bytes) -> Optional[Dict[str, Any]]:
+def normalize_payload(payload: bytes) -> Optional[Dict[str, Any]]:
     try:
         raw_data = json.loads(payload.decode("utf-8"))
+        return raw_data
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        pass
+
+    try:
+        text = payload.decode("utf-8").strip()
+    except UnicodeDecodeError:
+        logger.warning("Mensaje MQTT no es JSON válido: %s", payload)
+        return None
+
+    if text.startswith("'") and text.endswith("'"):
+        text = text[1:-1]
+
+    text = re.sub(r"(?P<key>\b\w+\b)\s*:", r'"\g<key>":', text)
+
+    try:
+        return json.loads(text)
     except json.JSONDecodeError:
         logger.warning("Mensaje MQTT no es JSON válido: %s", payload)
+        return None
+
+
+def parse_payload(payload: bytes) -> Optional[Dict[str, Any]]:
+    raw_data = normalize_payload(payload)
+    if raw_data is None:
         return None
 
     def as_float(value: Any) -> Optional[float]:
