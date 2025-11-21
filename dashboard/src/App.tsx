@@ -65,7 +65,7 @@ function App() {
     <div className="app">
       <header className="app__header">
         <div>
-          <p className="eyebrow">Monitoreo solar en vivo</p>
+          <p className="eyebrow">Monitoreo solar</p>
           <h1>Paneles | Motores | Seguidor</h1>
           <p className="muted">Corriente, voltaje y potencia con hora ajustada a GMT-5.</p>
         </div>
