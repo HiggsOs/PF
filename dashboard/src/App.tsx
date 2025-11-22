@@ -57,8 +57,6 @@ function App() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 10_000);
-    return () => clearInterval(interval);
   }, [limit]);
 
   return (
